@@ -1,16 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace BusinessLayer;
     public partial class Country
 {
 
-        [Key]
-        public string CountryCode { get; set; } = null!;
-
         public string CountryName { get; set; } = null!;
-
+        public string CountryCode { get; set; } = null!;
 
         public string ContinentCode { get; set; } = null!;
 

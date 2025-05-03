@@ -1,4 +1,5 @@
-﻿using BusinessLayer;
+﻿
+using BusinessLayer;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -8,7 +9,7 @@ namespace DataLayer
 {
     public class FootballerContext : IDb<Footballer, int>
     {
-        private readonly DBLibraryContext dbContext;
+        private DBLibraryContext dbContext;
 
         public FootballerContext(DBLibraryContext dbContext)
         {
@@ -17,13 +18,9 @@ namespace DataLayer
 
         public void Create(Footballer item)
         {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item));
-
             dbContext.Footballers.Add(item);
             dbContext.SaveChanges();
         }
-        
 
         public Footballer Read(int key, bool useNavigationalProperties = false, bool isReadOnly = false)
         {
@@ -31,17 +28,23 @@ namespace DataLayer
 
             if (useNavigationalProperties)
             {
-                query = query
-                    .Include(f => f.Team)
-                    .Include(f => f.CountryCodeNavigation)
-                    .Include(f => f.Footballerstrophies)
-                        .ThenInclude(ft => ft.Trophy);
+                query = query.Include(g => g.Team)
+                            .Include(g => g.CountryCodeNavigation);
             }
 
             if (isReadOnly)
-                query = query.AsNoTracking();
+            {
+                query = query.AsNoTrackingWithIdentityResolution();
+            }
 
-            return query.FirstOrDefault(f => f.Id == key);
+            Footballer footballer = query.FirstOrDefault(g => g.Id == key);
+
+            if (footballer == null)
+            {
+                throw new ArgumentException($"Footballer with id {key} does not exist!");
+            }
+
+            return footballer;
         }
 
         public List<Footballer> ReadAll(bool useNavigationalProperties = false, bool isReadOnly = false)
@@ -50,55 +53,46 @@ namespace DataLayer
 
             if (useNavigationalProperties)
             {
-                query = query
-                    .Include(f => f.Team)
-                    .Include(f => f.CountryCodeNavigation)
-                    .Include(f => f.Footballerstrophies)
-                        .ThenInclude(ft => ft.Trophy);
+                query = query.Include(g => g.Team)
+                            .Include(g => g.CountryCodeNavigation);
             }
 
             if (isReadOnly)
-                query = query.AsNoTracking();
+            {
+                query = query.AsNoTrackingWithIdentityResolution();
+            }
 
             return query.ToList();
         }
 
-       
         public void Update(Footballer item, bool useNavigationalProperties = false)
         {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item));
-
-            Footballer existing = dbContext.Footballers
-                .Include(f => f.Footballerstrophies)
-                .FirstOrDefault(f => f.Id == item.Id);
-
-            if (existing == null)
-                throw new KeyNotFoundException("Footballer not found");
-
-            dbContext.Entry(existing).CurrentValues.SetValues(item);
-
-            if (useNavigationalProperties)
+            try
             {
-                dbContext.Entry(existing).Collection(f => f.Footballerstrophies).Load();
-                existing.Footballerstrophies = item.Footballerstrophies;
-            }
+                Footballer footballer = Read(item.Id, useNavigationalProperties);
 
-            dbContext.SaveChanges();
+                dbContext.Entry(footballer).CurrentValues.SetValues(item);
+                dbContext.SaveChanges();
+            }
+            catch (ArgumentException)
+            {
+                throw new ArgumentException($"Footballer with id {item.Id} does not exist!");
+            }
         }
 
         public void Delete(int key)
         {
-            Footballer footballerFromDb = Read(key, useNavigationalProperties: true);
+            try
+            {
+                Footballer footballerFromDb = Read(key);
 
-            if (footballerFromDb == null)
-                throw new KeyNotFoundException("Footballer not found");
-
-            if (footballerFromDb.Footballerstrophies.Any())
-                dbContext.Footballerstrophies.RemoveRange(footballerFromDb.Footballerstrophies);
-
-            dbContext.Footballers.Remove(footballerFromDb);
-            dbContext.SaveChanges();
+                dbContext.Footballers.Remove(footballerFromDb);
+                dbContext.SaveChanges();
+            }
+            catch (ArgumentException)
+            {
+                throw new ArgumentException($"Footballer with id {key} does not exist!");
+            }
         }
     }
 }

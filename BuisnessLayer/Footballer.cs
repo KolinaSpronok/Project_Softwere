@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 
 namespace BusinessLayer;
 
 public partial class Footballer
 {
-    [Key]
     public int Id { get; set; }
 
     public int? ShirtNumber { get; set; }
@@ -31,7 +29,7 @@ public partial class Footballer
 
     public bool? Captain { get; set; }
 
-    public virtual Country? CountryCodeNavigation { get; set; }
+    public virtual Country CountryCodeNavigation { get; set; } = null!;
 
     public virtual ICollection<Footballerstrophy> Footballerstrophies { get; set; } = new List<Footballerstrophy>();
 
